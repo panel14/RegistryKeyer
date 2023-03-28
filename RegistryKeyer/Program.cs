@@ -29,7 +29,7 @@ static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, string 
         nodeName = nodeName.Replace(" ", "_");
         nodeName = nodeName.Trim();
     }
-    File.AppendAllText("registry.txt", $"0 pName={parentName} name={nodeName} value=node\n");
+    File.AppendAllText("registry.txt", $"{parentId} pName={parentName} name={nodeName} value=node\n");
 
     foreach (var name in names)
     {
@@ -80,7 +80,7 @@ static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, string 
         string rValue = curValue.Replace(" ", "_");
         rValue = rValue.Trim();
         if (rValue.Length == 0) rValue = "empty";
-        File.AppendAllText("registry.txt", $"1 pName={nodeName} name={name} value={rValue}\n");
+        File.AppendAllText("registry.txt", $"{parentId + 1} pName={nodeName} name={name} value={rValue}\n");
 
         ret++;
     }

@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.Win32;
 using System.Net;
+using System.Net.Http.Headers;
 
 using (RegistryKey root = Registry.LocalMachine)
 {
@@ -16,31 +17,39 @@ using (RegistryKey root = Registry.LocalMachine)
 // If you have compiled binary version you can't read it, but can find "registry.txt" in same folder with programm
 
 // CHANGE THIS FUNCTION TO GET EXPECTED DATA FILE
-static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, int id)
+static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, string parentName)
 {
     var names = key.GetValueNames();
     //List<string> values = new ();
     int ret = 0;
-    foreach ( var name in names )
+
+
+    if (nodeName.Length > 0)
+    {
+        nodeName = nodeName.Replace(" ", "_");
+        nodeName = nodeName.Trim();
+    }
+    File.AppendAllText("registry.txt", $"0 pName={parentName} name={nodeName} value=node\n");
+
+    foreach (var name in names)
     {
         string curValue = "";
         var value = key.GetValue(name);
-        if ( value != null )
+        if (value != null)
         {
             Type type = value.GetType();
 
             if (type == typeof(string))
             {
                 string val = value.ToString();
-                if (val.Length > 0 )
+                if (val.Length > 0)
                 {
                     val = val.Replace(' ', '_');
                     val = val.Trim();
                 }
-                //values.Add(val);
                 curValue = val;
             }
-            else if (type == typeof(byte[])) 
+            else if (type == typeof(byte[]))
             {
                 byte[] bytes = value as byte[];
                 Random random = new();
@@ -51,10 +60,8 @@ static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, int id)
                 {
                     bytesStr = bytesStr.Replace(' ', '_');
                     bytesStr = bytesStr.Trim();
-                } 
-
-               // values.Add(bytesStr);
-               curValue = bytesStr;
+                }
+                curValue = bytesStr;
             }
             else if (type == typeof(string[]))
             {
@@ -66,34 +73,25 @@ static int WriteNodeInfo(RegistryKey key, int parentId, string nodeName, int id)
                     oneString = oneString.Replace(" ", "_");
                     oneString = oneString.Trim();
                 }
-
-                //values.Add(oneString);
                 curValue = oneString;
             }
         }
 
         string rValue = curValue.Replace(" ", "_");
         rValue = rValue.Trim();
-        File.AppendAllText("registry.text", $"{id + 1} pName={nodeName} name={name} value={rValue}");
+        if (rValue.Length == 0) rValue = "empty";
+        File.AppendAllText("registry.txt", $"1 pName={nodeName} name={name} value={rValue}\n");
 
         ret++;
     }
-
-    if (nodeName.Length > 0)
-    {
-        nodeName = nodeName.Replace(" ", "_");
-        nodeName = nodeName.Trim();
-    }
-    int namesCount = 0;
-    string nName = nodeName.Replace(" ", "_");
-    File.AppendAllText("registry.txt", $"{id} pName={nName} name={nName} value=node\n");
-    //foreach (var value in values)
-    //{
-    //    string vName = names[namesCount++].Replace(" ", "_");
-    //    File.AppendAllText("registry.txt", $"{id + 1} pName={nName} name={vName} value={value}\n");
-    //}
-
     return (ret > 0) ? 1: 0;
+}
+
+static string TrimRootName(string fullName)
+{
+    int idx = fullName.LastIndexOf('\\');
+    if (idx == -1) return fullName;
+    return fullName[fullName.LastIndexOf('\\')..];
 }
 
 //Raw node info Shell Folders
@@ -169,7 +167,7 @@ static void SearchSubKeys(RegistryKey root, string searchKey, int currentId)
                 string prefix = $"PARENT ID: {currentId}";
                 string values = ProcessKey(key);
 
-                int innerIds = WriteNodeInfo(key, currentId, keyname, currentId);
+                int innerIds = WriteNodeInfo(key, currentId, keyname, TrimRootName(root.Name));
 
                 Console.WriteLine($"{prefix}; NODE: {keyname}; VALUES: {values}");
                 SearchSubKeys(key, searchKey, currentId + idCounter + innerIds);
